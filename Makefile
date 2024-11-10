@@ -48,7 +48,7 @@ config: dir
 
 test:
 	@$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
-	SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH)
+	SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH) VERILOG_SOURCES="$(VERILOG_SOURCES)"
 
 clean-all: clean
 	rm -rf $(SIM_BUILD)
