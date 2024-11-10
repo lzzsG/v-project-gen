@@ -92,7 +92,13 @@ make wave        # 带波形生成的仿真
 make test        # 运行 Cocotb 测试
 ```
 
-### 2. 分析波形
+### 2. 运行 Cocotb 测试
+
+```bash
+make test        # 运行 Cocotb 测试
+```
+
+### 3. 分析波形
 
 使用 GTKWave 打开波形文件：
 
@@ -100,7 +106,7 @@ make test        # 运行 Cocotb 测试
 make wave
 ```
 
-### 3. NVBoard 调试
+### 4. NVBoard 调试
 
 生成 NVBoard 引脚绑定并运行仿真：
 
