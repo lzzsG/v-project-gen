@@ -1,5 +1,7 @@
 #include <verilated.h>
-#include "Vtop.h" // Verilator 自动生成的顶层模块头文件
+#include "Vtop.h"  // Verilator 自动生成的顶层模块头文件
+#include <cstdlib> // 包含 rand() 和 srand()
+#include <ctime>   // 包含 time() 用于随机种子
 
 #ifdef NVBOARD
 #include <nvboard.h> // 包含 NVBoard 的头文件
@@ -54,12 +56,13 @@ int main(int argc, char **argv)
         simulate();       // 模拟单个时钟周期
     }
 #else
+    std::srand(std::time(nullptr));
+
     for (int i = 0; i < 100; ++i) // 非 NVBoard 模式下运行 100 个周期
     {
-        // 示例输入信号
-        dut.a = i & 0b1111;       // 输入信号 a
-        dut.b = (i * 2) & 0b1111; // 输入信号 b
-        dut.opcode = i % 4;       // 示例操作码
+        dut.a = i & 0b1111;           // 输入信号 a
+        dut.b = std::rand() & 0b1111; // 生成随机数 输入信号 b
+        dut.opcode = i % 4;           // 示例操作码
 
         dut.eval(); // 调用 Verilator 的仿真计算
 
