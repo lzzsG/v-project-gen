@@ -38,7 +38,7 @@ endif
 # 加载 Cocotb 提供的 Makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-.PHONY: test config clean-all build wave dir nvb nvboard-bind help
+.PHONY: test config clean-all build wave dir nvb nvboard-bind vhelp
 
 dir:
 	mkdir -p $(WAVE_DIR) obj_dir config
@@ -100,7 +100,7 @@ nvb: nvboard-bind
 	./obj_dir/V$(TOPLEVEL)
 	@echo "-- DONE --------------------"
 
-help:
+vhelp:
 	@echo "Usage: make [TARGET]"
 	@echo
 	@echo "Available targets:"
