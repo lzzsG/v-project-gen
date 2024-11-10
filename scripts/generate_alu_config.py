@@ -8,7 +8,10 @@ def generate_config(filename, module_name, num_tests, input_rules, output_rules)
     :param output_rules: 输出规则
     """
     import configparser
-    
+    import os
+
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+
     config = configparser.ConfigParser()
 
     # 根据模块特性生成测试用例

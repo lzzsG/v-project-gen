@@ -1,0 +1,6 @@
+top=top
+
+b (SW3, SW2, SW1, SW0)
+a (SW7, SW6, SW5, SW4)
+opcode (SW9, SW8)
+result (LD3, LD2, LD1, LD0)

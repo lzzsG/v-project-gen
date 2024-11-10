@@ -3,18 +3,15 @@ SIM ?= verilator                 # 使用 Verilator 作为仿真器
 TOPLEVEL_LANG ?= verilog         # Verilog 模块语言
 TOPLEVEL ?= top					 # 顶层模块名（你的 Verilog 模块名称）
 MODULE ?= test_alu              # Python 测试文件名（不带 .py 后缀）
-CSRC := src_cxx
+PYTHONPATH ?= tests
 
+RTL_DIR := src_rtl
+CXX_DIR := src_cxx
+WAVE_DIR := wave
 
-
-LDFLAGS += $(NVBOARD_ARCHIVE) $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf
-
-# 源文件路径
-VERILOG_SOURCES = $(wildcard src_rtl/*.v)    # Verilog 源文件路径
+VERILOG_SOURCES = $(wildcard $(RTL_DIR)/*.v)
 CONFIG_SCRIPT = scripts/generate_alu_config.py  # 配置文件生成脚本
 
-# Python 路径
-PYTHONPATH ?= tests
 
 ifeq ($(VERILATOR_ROOT),)
   VERILATOR = verilator
@@ -23,18 +20,37 @@ else
   VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
 
+# NVBoard 相关配置
+ifeq ($(NVBOARD_HOME),)
+  $(error NVBOARD_HOME is not set. Please export NVBOARD_HOME to your environment.)
+endif
+include $(NVBOARD_HOME)/scripts/nvboard.mk
+NVBOARD_SCRIPTS := $(NVBOARD_HOME)/scripts
+NVBOARD_PIN_BIND_SCRIPT := $(NVBOARD_SCRIPTS)/auto_pin_bind.py
+NVBOARD_INC := $(NVBOARD_HOME)/include
+CXXFLAGS += -I$(NVBOARD_USR_INC) -I$(NVBOARD_INC) $(shell sdl2-config --cflags) -D_REENTRANT -DNVBOARD
+LDFLAGS += $(NVBOARD_ARCHIVE) $(shell sdl2-config --libs) -lSDL2_image -lSDL2_ttf
+ifdef COMB
+CXXFLAGS += -DCOMB
+endif
+
+
 # 加载 Cocotb 提供的 Makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-.PHONY: run-t                      # 一键运行目标
-run-t:
-	@$(MAKE) SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH)
 
-.PHONY: config                   # 生成测试配置文件
+
+.PHONY: test config clean-all build wave dir nvboard nvboard-bind
+
+dir:
+	mkdir -p $(WAVE_DIR) obj_dir
+
 config: 
 	python3 $(CONFIG_SCRIPT)
 
-.PHONY: clean-all                # 清理所有生成文件
+test:
+	@$(MAKE) SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH)
+
 clean-all: clean
 	rm -rf $(SIM_BUILD)
 	rm -rf obj_dir
@@ -42,12 +58,11 @@ clean-all: clean
 	rm -rf results.xml
 # rm -f config/*.ini
 
-.PHONY: build
-build: 
+build: dir
 	@echo "Building project..."
 	$(VERILATOR) -cc --exe --build \
 		--top-module $(TOPLEVEL) \
-		$(VERILOG_SOURCES) $(CSRC)/main.cpp\
+		$(VERILOG_SOURCES) $(CXX_DIR)/main.cpp\
 		-CFLAGS "-std=c++11 -I./src-cxx" \
 		-Mdir obj_dir
 	@echo "Build complete."
@@ -55,18 +70,33 @@ build:
 	./obj_dir/V$(TOPLEVEL)
 	@echo "-- DONE --------------------"
 
-
-
-.PHONY: wave
-wave:
+wave: dir
 	@echo "Building project..."
 	$(VERILATOR) -cc --exe --trace --build \
 		--top-module $(TOPLEVEL) \
-		$(VERILOG_SOURCES) $(CSRC)/main.cpp\
+		$(VERILOG_SOURCES) $(CXX_DIR)/main.cpp\
 		-CFLAGS "-std=c++11 -I./src-cxx -DTRACE" \
 		-Mdir obj_dir
 	@echo "Build complete (with waveform)."
 	@echo "-- RUN with tracing --------"
 	./obj_dir/V$(TOPLEVEL)
 	@echo "-- DONE --------------------"
-	gtkwave dump.vcd gtks.gtkw
+	gtkwave wave/dump.vcd wave/gtks.gtkw
+
+nvboard-bind:
+	@echo "Generating NVBoard pin bindings..."
+	python3 $(NVBOARD_PIN_BIND_SCRIPT) $(RTL_DIR)/pins.nxdc $(CXX_DIR)/auto_bind.cpp
+	@echo "Pin bindings generated."
+
+nvboard: nvboard-bind
+	@echo "Building NVBoard project..."
+	$(VERILATOR) -cc --exe --build \
+		--top-module $(TOPLEVEL) \
+		$(VERILOG_SOURCES) $(CXX_DIR)/main.cpp $(CXX_DIR)/auto_bind.cpp \
+		--CFLAGS "$(CXXFLAGS)" \
+		--LDFLAGS "$(LDFLAGS)" \
+		-Mdir obj_dir
+	@echo "NVBoard build complete."
+	@echo "-- RUN NVBoard simulation --------"
+	./obj_dir/V$(TOPLEVEL)
+	@echo "-- DONE --------------------"
