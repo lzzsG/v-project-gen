@@ -25,4 +25,4 @@ config:
 .PHONY: clean-all                # 清理所有生成文件
 clean-all: clean
 	rm -rf $(SIM_BUILD)
-	rm -f config/*.ini
+# rm -f config/*.ini
