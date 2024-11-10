@@ -12,13 +12,13 @@ WAVE_DIR := wave
 VERILOG_SOURCES = $(wildcard $(RTL_DIR)/*.v)
 CONFIG_SCRIPT = scripts/generate_alu_config.py  # 配置文件生成脚本
 
-
 ifeq ($(VERILATOR_ROOT),)
   VERILATOR = verilator
 else
   export VERILATOR_ROOT
   VERILATOR = $(VERILATOR_ROOT)/bin/verilator
 endif
+
 
 # NVBoard 相关配置
 ifeq ($(NVBOARD_HOME),)
@@ -38,18 +38,17 @@ endif
 # 加载 Cocotb 提供的 Makefile
 include $(shell cocotb-config --makefiles)/Makefile.sim
 
-
-
-.PHONY: test config clean-all build wave dir nvboard nvboard-bind
+.PHONY: test config clean-all build wave dir nvb nvboard-bind help
 
 dir:
-	mkdir -p $(WAVE_DIR) obj_dir
+	mkdir -p $(WAVE_DIR) obj_dir config
 
-config: 
+config: dir
 	python3 $(CONFIG_SCRIPT)
 
 test:
-	@$(MAKE) SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH)
+	@$(MAKE) -f $(shell cocotb-config --makefiles)/Makefile.sim \
+	SIM=$(SIM) TOPLEVEL=$(TOPLEVEL) MODULE=$(MODULE) PYTHONPATH=$(PYTHONPATH)
 
 clean-all: clean
 	rm -rf $(SIM_BUILD)
@@ -88,7 +87,7 @@ nvboard-bind:
 	python3 $(NVBOARD_PIN_BIND_SCRIPT) $(RTL_DIR)/pins.nxdc $(CXX_DIR)/auto_bind.cpp
 	@echo "Pin bindings generated."
 
-nvboard: nvboard-bind
+nvb: nvboard-bind
 	@echo "Building NVBoard project..."
 	$(VERILATOR) -cc --exe --build \
 		--top-module $(TOPLEVEL) \
@@ -100,3 +99,17 @@ nvboard: nvboard-bind
 	@echo "-- RUN NVBoard simulation --------"
 	./obj_dir/V$(TOPLEVEL)
 	@echo "-- DONE --------------------"
+
+help:
+	@echo "Usage: make [TARGET]"
+	@echo
+	@echo "Available targets:"
+	@echo "  dir             Create necessary directories for build and wave files."
+	@echo "  config          Run the configuration script to generate ALU configuration."
+	@echo "  test            Run Cocotb testbench using the specified simulator."
+	@echo "  build           Build the project using Verilator without waveform tracing."
+	@echo "  wave            Build the project using Verilator with waveform tracing."
+	@echo "  nvboard-bind    Generate NVBoard pin bindings from the configuration file."
+	@echo "  nvb             Build and run the project with NVBoard simulation."
+	@echo "  nvb COMB=1      Build and run NVBoard for combinational logic(without clk)."
+	@echo "  clean-all       Clean all build files, simulation results, and configurations."
